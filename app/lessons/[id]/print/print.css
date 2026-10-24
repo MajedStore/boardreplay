@@ -1,0 +1,204 @@
+.print-layout {
+  min-height: 100vh;
+  background: #eef2f7;
+  padding: 24px 20px 60px;
+  color: #21334a;
+}
+.print-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  margin: 0 auto 30px;
+  max-width: 1100px;
+  flex-wrap: wrap;
+  font-size: 12px;
+}
+.print-toolbar label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.print-document {
+  max-width: 820px;
+  background: white;
+  margin: auto;
+  padding: 60px 66px;
+  box-shadow: 0 8px 32px #192e480b;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 13px;
+  line-height: 1.8;
+  color: #27374b;
+  overflow-wrap: anywhere;
+}
+.print-document header {
+  border-bottom: 2px solid #15334d;
+  padding-bottom: 20px;
+  margin-bottom: 26px;
+}
+.print-brand {
+  color: #168c9f;
+  letter-spacing: 2px;
+  font-size: 10px;
+  font-weight: 700;
+}
+.print-document h1 {
+  font-size: 32px;
+  letter-spacing: -1px;
+  line-height: 1.25;
+  margin: 16px 0;
+}
+.print-document h2 {
+  font-size: 19px;
+  border-bottom: 1px solid #dfe7f0;
+  margin: 36px 0 20px;
+  padding-bottom: 9px;
+  color: #173650;
+}
+.print-notice {
+  background: #f1f7fa;
+  border-left: 3px solid #21a8bb;
+  padding: 10px 14px;
+  font-size: 10px;
+  color: #5a6b7d;
+}
+.print-step {
+  margin: 0 0 24px;
+  break-inside: avoid;
+}
+.print-step-meta {
+  font-size: 9px;
+  letter-spacing: 0.4px;
+  color: #526c83;
+  font-weight: 600;
+}
+.print-step .content-markdown {
+  font-size: 12px;
+  color: #27374b;
+}
+.print-step .katex-display {
+  font-size: 17px;
+  text-align: left;
+  margin: 20px 0;
+}
+.print-step small {
+  font-size: 9px;
+  color: #6a7888;
+  line-height: 1.7;
+}
+.print-uncertainty {
+  font-size: 10px;
+  border-left: 2px solid #c0953c;
+  color: #816930;
+  padding-left: 10px;
+}
+.print-photo {
+  margin: 25px 0;
+  break-inside: avoid;
+}
+.print-photo img {
+  width: 100%;
+  max-height: 450px;
+  object-fit: contain;
+}
+.print-photo figcaption {
+  font-size: 10px;
+  color: #6b7b8b;
+}
+.print-document footer {
+  border-top: 1px solid #dfe7f0;
+  padding-top: 20px;
+  margin-top: 35px;
+  font-size: 9px;
+  color: #7c8c9e;
+}
+.print-document ul {
+  padding-left: 20px;
+  list-style: disc;
+}
+.print-document table {
+  border-collapse: collapse;
+  width: 100%;
+}
+.print-document th,
+.print-document td {
+  border: 1px solid #dce3ec;
+  padding: 6px 9px;
+}
+.print-document pre {
+  white-space: pre-wrap;
+  background: #f5f7fa;
+  padding: 12px;
+  font-size: 11px;
+}
+.print-document .katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+@media (max-width: 650px) {
+  .print-layout {
+    padding: 20px 12px;
+  }
+  .print-document {
+    padding: 30px 22px;
+  }
+  .print-toolbar {
+    gap: 14px;
+    font-size: 11px;
+  }
+  .print-document h1 {
+    font-size: 26px;
+  }
+}
+@media print {
+  @page {
+    size: A4;
+    margin: 18mm 17mm;
+  }
+  html,
+  body,
+  .print-layout {
+    background: white !important;
+    color: #21334a !important;
+  }
+  .print-layout {
+    padding: 0 !important;
+  }
+  .print-document {
+    max-width: none;
+    padding: 0;
+    box-shadow: none;
+    font-size: 11px;
+    line-height: 1.7;
+  }
+  .print-document h1 {
+    font-size: 27px;
+  }
+  .print-document h2 {
+    break-after: avoid;
+    margin-top: 25px;
+  }
+  .print-step {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .print-document .content-markdown {
+    color: #27374b !important;
+  }
+  .print-document .katex-display {
+    overflow: visible;
+    font-size: 15px;
+  }
+  .print-document .print-notice {
+    print-color-adjust: exact;
+  }
+  .print-photo img {
+    max-height: 180mm;
+  }
+  .print-document footer {
+    break-inside: avoid;
+  }
+  .print-toolbar {
+    display: none !important;
+  }
+}

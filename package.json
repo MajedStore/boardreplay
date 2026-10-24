@@ -1,0 +1,52 @@
+{
+  "name": "boardreplay",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --webpack --hostname 127.0.0.1",
+    "build": "prisma generate && next build",
+    "start": "next start --hostname 127.0.0.1",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate deploy",
+    "db:dev": "prisma migrate dev",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "demo:frames": "node scripts/generate-demo.mjs"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "latest",
+    "@google/genai": "latest",
+    "@prisma/adapter-better-sqlite3": "7.10.1",
+    "@prisma/client": "7.10.1",
+    "dotenv": "latest",
+    "katex": "^0.16.47",
+    "lucide-react": "latest",
+    "next": "16.4.3",
+    "openai": "7.43.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "react-markdown": "latest",
+    "rehype-katex": "latest",
+    "remark-gfm": "latest",
+    "remark-math": "latest",
+    "sharp": "latest",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@playwright/test": "latest",
+    "@tailwindcss/postcss": "latest",
+    "@types/better-sqlite3": "latest",
+    "@types/katex": "latest",
+    "@types/node": "latest",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "eslint": "latest",
+    "eslint-config-next": "16.4.3",
+    "prisma": "7.10.1",
+    "tailwindcss": "latest",
+    "typescript": "latest",
+    "vitest": "latest"
+  }
+}

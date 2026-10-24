@@ -1,0 +1,103 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+datasource db {
+  provider = "sqlite"
+}
+model Lesson {
+  id String @id @default(cuid())
+  title String
+  course String @default("")
+  topic String @default("")
+  date String @default("")
+  language String @default("Original language")
+  instructions String @default("")
+  status String @default("PENDING")
+  error String?
+  isDemo Boolean @default(false)
+  needsReprocessing Boolean @default(false)
+  reconstruction Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  images LectureImage[]
+  runs ProcessingRun[]
+  revisions ReconstructionRevision[]
+  comparisons ComparisonRun[]
+  report ReportDraft?
+}
+model LectureImage {
+  id String @id @default(cuid())
+  lessonId String
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  originalFilename String
+  sequence Int
+  mimeType String
+  width Int
+  height Int
+  rotation Int @default(0)
+  storagePath String
+  uploadedAt DateTime @default(now())
+  @@index([lessonId, sequence])
+}
+model ProcessingRun {
+  id String @id @default(cuid())
+  lessonId String
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  status String
+  provider String
+  model String
+  imageSnapshot Json
+  startedAt DateTime @default(now())
+  completedAt DateTime?
+  error String?
+  extractions ExtractionResult[]
+  @@index([lessonId])
+}
+model ExtractionResult {
+  id String @id @default(cuid())
+  runId String
+  run ProcessingRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  position Int
+  content Json
+}
+model ReconstructionRevision {
+  id String @id @default(cuid())
+  lessonId String
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  content Json
+  reason String
+  createdAt DateTime @default(now())
+}
+model ComparisonRun {
+  id String @id @default(cuid())
+  lessonId String
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  prompt String
+  imageSnapshot Json
+  reference String @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  results ProviderResult[]
+}
+model ProviderResult {
+  id String @id @default(cuid())
+  comparisonId String
+  comparison ComparisonRun @relation(fields: [comparisonId], references: [id], onDelete: Cascade)
+  provider String
+  model String
+  mode String
+  rawOutput String
+  structuredOutput Json?
+  durationMs Int?
+  createdAt DateTime @default(now())
+  notes String @default("")
+  scores Json
+}
+model ReportDraft {
+  id String @id @default(cuid())
+  lessonId String @unique
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  content Json
+  updatedAt DateTime @updatedAt
+}
