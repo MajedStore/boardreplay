@@ -3,6 +3,7 @@ import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import type { AiProvider, GenerateRequest, GenerateResult } from "../contracts";
 import { AiError } from "../errors";
 import { benchmarkImageLabel } from "../../benchmark";
+import { parseStructuredOutput } from "../parse-output";
 
 export class AnthropicProvider implements AiProvider {
   readonly id = "anthropic" as const;
@@ -62,19 +63,19 @@ export class AnthropicProvider implements AiProvider {
     if (!rawOutput.trim() || response.stop_reason === "refusal")
       throw new AiError(
         "INVALID_OUTPUT",
-        "The provider did not return usable content for these photographs.",
+        "The AI provider returned no usable content. Your photos are saved; retry reconstruction or choose another model.",
       );
     if (!request.schema) return { rawOutput, model: response.model };
     try {
       return {
         rawOutput,
-        structuredOutput: request.schema.parse(JSON.parse(rawOutput)),
+        structuredOutput: parseStructuredOutput(request, rawOutput),
         model: response.model,
       };
     } catch {
       throw new AiError(
         "INVALID_OUTPUT",
-        "The provider returned invalid structured data. Review the photographs and try again.",
+        "The AI provider returned malformed structured content. Your photos and completed analysis are saved; retry reconstruction.",
       );
     }
   }

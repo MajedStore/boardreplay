@@ -1,0 +1,183 @@
+.engineering-hero .demo-photo {
+  position: absolute;
+  width: 78%;
+  padding: 10px;
+  background: var(--surface, #fff);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  box-shadow: 0 12px 35px #263f4f18;
+}
+.demo-photo img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid #c6d4d2;
+  border-radius: 3px;
+  margin-top: 10px;
+}
+.demo-photo-first {
+  left: 0;
+  top: 18px;
+  transform: rotate(-7deg);
+}
+.demo-photo-final {
+  right: 0;
+  top: 115px;
+  transform: rotate(5deg);
+}
+.demo-hero-replay {
+  position: absolute;
+  bottom: -6px;
+  left: 8%;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--surface, #fff);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 16px;
+  box-shadow: 0 9px 30px #263f4f15;
+  font-size: 11px;
+}
+.demo-hero-replay > svg {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+.demo-hero-replay strong,
+.demo-hero-replay span:not(.sample-label) {
+  display: block;
+}
+.demo-hero-replay div span {
+  color: var(--muted);
+  margin-top: 4px;
+  font-size: 10px;
+}
+.demo-hero-replay > .sample-label {
+  margin-left: auto;
+}
+.engineering-example {
+  grid-template-columns: 245px minmax(0, 1fr);
+}
+.engineering-example-board {
+  padding: 20px 22px 0;
+  min-width: 0;
+}
+.engineering-example-board .spatial-board {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  margin: 16px 0;
+  background: var(--surface, #fff);
+}
+.demo-moment-caption {
+  padding: 0 2px 12px;
+  font-size: 12px;
+}
+.demo-moment-caption > p {
+  font-size: 11px;
+  line-height: 1.65;
+  margin: 6px 0 12px;
+  color: var(--muted);
+}
+.demo-moment-caption .evidence-chip {
+  font-size: 9px;
+}
+.engineering-example .example-controls {
+  margin-top: auto;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.engineering-example .sample-disclaimer {
+  line-height: 1.9;
+}
+.discipline-examples {
+  padding: 32px 0 40px;
+  border-bottom: 1px solid var(--line);
+}
+.discipline-examples h2 {
+  font-size: 25px;
+  margin: 8px 0 10px;
+}
+.discipline-examples p {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.75;
+}
+.discipline-example-links {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 20px;
+}
+.discipline-example-links button {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  padding: 20px 32px 20px 17px;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--surface, #fff);
+  font-size: 12px;
+  color: var(--ink);
+}
+.discipline-example-links span {
+  font-size: 10px;
+  color: var(--muted);
+  line-height: 1.7;
+}
+.discipline-example-links svg {
+  position: absolute;
+  right: 12px;
+  top: 19px;
+  color: var(--accent);
+}
+@media (max-width: 800px) {
+  .engineering-example {
+    grid-template-columns: 1fr;
+  }
+  .engineering-hero .demo-photo {
+    width: 76%;
+  }
+  .demo-hero-replay {
+    left: 0;
+  }
+  .engineering-example-board {
+    padding: 14px 12px 0;
+  }
+  .engineering-example .example-controls .text-link {
+    margin-left: 0;
+  }
+  .engineering-example .example-board-top {
+    font-size: 8px;
+  }
+}
+@media (max-width: 480px) {
+  .engineering-hero {
+    min-height: 340px;
+  }
+  .demo-photo-final {
+    top: 105px;
+  }
+  .demo-hero-replay {
+    bottom: 0;
+    padding: 12px;
+    font-size: 10px;
+  }
+  .demo-hero-replay > .sample-label {
+    display: none;
+  }
+  .engineering-example .sample-timeline-step {
+    min-height: 37px;
+  }
+  .engineering-example .sample-disclaimer {
+    font-size: 10px;
+  }
+}
+@media (max-width: 650px) {
+  .discipline-example-links {
+    grid-template-columns: 1fr;
+  }
+}

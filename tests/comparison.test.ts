@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { benchmarkImageLabel, buildManualBenchmarkPrompt } from "../lib/benchmark";
+import {
+  benchmarkImageLabel,
+  buildManualBenchmarkPrompt,
+} from "../lib/benchmark";
 import { EVIDENCE_SYSTEM_PROMPT } from "../lib/ai/prompts";
 import {
   comparisonCsv,
@@ -52,8 +55,17 @@ describe("equivalent manual benchmark instructions", () => {
     const benchmark = run([]);
     benchmark.imageSnapshot.reverse();
     const copied = buildManualBenchmarkPrompt(benchmark);
-    expect(copied).toBe([EVIDENCE_SYSTEM_PROMPT, benchmark.prompt, "Source image 1; image ID: frame-1", "Source image 2; image ID: frame-2"].join("\n\n"));
-    expect(copied).toContain(benchmarkImageLabel({ id: "frame-1", sequence: 0 }));
+    expect(copied).toBe(
+      [
+        EVIDENCE_SYSTEM_PROMPT,
+        benchmark.prompt,
+        "Source image 1; image ID: frame-1",
+        "Source image 2; image ID: frame-2",
+      ].join("\n\n"),
+    );
+    expect(copied).toContain(
+      benchmarkImageLabel({ id: "frame-1", sequence: 0 }),
+    );
     expect(copied).not.toContain("lesson-1");
     expect(benchmark.imageSnapshot[0].id).toBe("frame-2");
   });

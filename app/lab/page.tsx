@@ -20,7 +20,12 @@ import {
 import AppShell from "@/components/layout/AppShell";
 import ResultCard from "@/components/comparison/ResultCard";
 import { request, downloadJson } from "@/lib/client";
-import { BENCHMARK_WRAPPER_VERSION, benchmarkImageLabel, benchmarkImageUrl, buildManualBenchmarkPrompt } from "@/lib/benchmark";
+import {
+  BENCHMARK_WRAPPER_VERSION,
+  benchmarkImageLabel,
+  benchmarkImageUrl,
+  buildManualBenchmarkPrompt,
+} from "@/lib/benchmark";
 import {
   comparisonCsv,
   DEFAULT_EVALUATION_PROMPT,
@@ -416,23 +421,52 @@ export default function ComparisonLabPage() {
                     </div>
                     <details>
                       <summary>View frozen prompt & image order</summary>
-                      <p className="lab-small-note">For manual comparison, download every prepared photo below, attach them in this order, and paste the full copied prompt into the official tool. These JPEGs use the exact snapshot rotation, orientation, size, and encoding sent by the API. The copied text includes its evidence rules and source identifiers.</p>
-                      <p className="frozen-prompt">{buildManualBenchmarkPrompt(run)}</p>
+                      {!run.systemInstructions && (
+                        <p className="lab-small-note">
+                          Historical benchmark: its system instructions were not
+                          saved. Previous responses are preserved; create a new
+                          benchmark for comparable automatic or manual runs.
+                        </p>
+                      )}
+                      <p className="lab-small-note">
+                        For manual comparison, download every prepared photo
+                        below, attach them in this order, and paste the full
+                        copied prompt into the official tool. These JPEGs use
+                        the exact snapshot rotation, orientation, size, and
+                        encoding sent by the API. The copied text includes its
+                        evidence rules and source identifiers.
+                      </p>
+                      <p className="frozen-prompt">
+                        {buildManualBenchmarkPrompt(run)}
+                      </p>
                       <ol>
-                        {[...run.imageSnapshot].sort((left, right) => left.sequence - right.sequence).map((image) => (
-                          <li key={image.id}>
-                            {benchmarkImageLabel(image)}<br />
-                            <a className="text-link" href={benchmarkImageUrl(run.id, image.id)} download={`boardreplay-photo-${String(image.sequence + 1).padStart(2, "0")}.jpg`}>Download photo {image.sequence + 1}</a>
-                          </li>
-                        ))}
+                        {[...run.imageSnapshot]
+                          .sort((left, right) => left.sequence - right.sequence)
+                          .map((image) => (
+                            <li key={image.id}>
+                              {benchmarkImageLabel(image)}
+                              <br />
+                              <a
+                                className="text-link"
+                                href={benchmarkImageUrl(run.id, image.id)}
+                                download={`boardreplay-photo-${String(image.sequence + 1).padStart(2, "0")}.jpg`}
+                              >
+                                Download photo {image.sequence + 1}
+                              </a>
+                            </li>
+                          ))}
                       </ol>
                     </details>
                     <button
                       className="btn btn-ghost"
                       onClick={async () => {
                         try {
-                          await navigator.clipboard.writeText(buildManualBenchmarkPrompt(run));
-                          setMessage("Full benchmark instructions and source IDs copied. Attach the prepared photos in their listed order.");
+                          await navigator.clipboard.writeText(
+                            buildManualBenchmarkPrompt(run),
+                          );
+                          setMessage(
+                            "Full benchmark instructions and source IDs copied. Attach the prepared photos in their listed order.",
+                          );
                         } catch {
                           setError(
                             "Clipboard unavailable. Expand the frozen prompt to copy it manually.",
@@ -547,7 +581,8 @@ export default function ComparisonLabPage() {
                     <p className="muted lab-small-note">
                       API calls send the saved source images to the selected
                       provider and may incur provider charges. Manual responses
-                      must use the full copied prompt and the prepared photograph downloads in the frozen benchmark above.
+                      must use the full copied prompt and the prepared
+                      photograph downloads in the frozen benchmark above.
                     </p>
                   </section>
                   {manualProvider && (
@@ -561,8 +596,9 @@ export default function ComparisonLabPage() {
                         </div>
                         <p className="muted">
                           Copy the full benchmark prompt above and attach every
-                          downloaded prepared photo in the saved order in the official tool. Paste the original
-                          response without rewriting it.
+                          downloaded prepared photo in the saved order in the
+                          official tool. Paste the original response without
+                          rewriting it.
                         </p>
                         <label className="field">
                           <span className="label">
@@ -614,7 +650,8 @@ export default function ComparisonLabPage() {
                             required
                           />
                           I used this saved prompt and the same{" "}
-                          {run.imageIds.length} prepared photographs in the same order.
+                          {run.imageIds.length} prepared photographs in the same
+                          order.
                         </label>
                         <div className="lab-button-row">
                           <button
@@ -706,8 +743,10 @@ export default function ComparisonLabPage() {
                               downloadJson(
                                 {
                                   ...run,
-                                benchmarkWrapperVersion: BENCHMARK_WRAPPER_VERSION,
-                                manualBenchmarkPrompt: buildManualBenchmarkPrompt(run),
+                                  benchmarkWrapperVersion:
+                                    BENCHMARK_WRAPPER_VERSION,
+                                  manualBenchmarkPrompt:
+                                    buildManualBenchmarkPrompt(run),
                                   evaluation:
                                     "Human-assessed 0–5 rubric; text metrics are agreement only.",
                                 },

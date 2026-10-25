@@ -4,7 +4,8 @@ import { api, ApiError, sameOrigin, errorResponse } from "@/lib/api";
 import { ensureEditable, getLesson, json } from "@/lib/lessons";
 import { safeStoragePath, removeStoredImage } from "@/lib/storage/images";
 import { z } from "zod";
-import type { Reconstruction } from "@/lib/types";
+import { reconcileMissingSources } from "@/lib/reconstruction/validate";
+import { Prisma } from "@/generated/prisma/client";
 export const runtime = "nodejs";
 type Context = { params: Promise<{ id: string }> };
 export async function GET(_: Request, context: Context) {
@@ -49,7 +50,7 @@ export async function PATCH(request: Request, context: Context) {
       db.lectureImage.update({ where: { id: image.id }, data: { rotation } }),
       db.lesson.update({
         where: { id: image.lessonId },
-        data: { needsReprocessing: true },
+        data: { needsReprocessing: true, photoOrganization: Prisma.DbNull },
       }),
     ]);
     return getLesson(image.lessonId);
@@ -78,25 +79,16 @@ export async function DELETE(request: Request, context: Context) {
         "This image is part of a saved comparison. Delete the comparison before removing its source image.",
         409,
       );
+    const available = await db.lectureImage.findMany({
+      where: { lessonId: lesson.id, id: { not: image.id } },
+      select: { id: true },
+    });
     const content = lesson.reconstruction
-      ? (structuredClone(lesson.reconstruction) as unknown as Reconstruction)
+      ? reconcileMissingSources(
+          lesson.reconstruction,
+          available.map((i) => i.id),
+        ).reconstruction
       : null;
-    if (content) {
-      for (const step of content.steps) {
-        if (step.sourceImageIds.includes(image.id)) {
-          step.sourceImageIds = step.sourceImageIds.filter(
-            (id) => id !== image.id,
-          );
-          step.evidenceStatus = "UNCERTAIN";
-          step.uncertainty = [
-            step.uncertainty,
-            "A referenced original image was removed by the user.",
-          ]
-            .filter(Boolean)
-            .join(" ");
-        }
-      }
-    }
     await db.$transaction(async (tx) => {
       if (lesson.reconstruction)
         await tx.reconstructionRevision.create({
@@ -120,6 +112,7 @@ export async function DELETE(request: Request, context: Context) {
         where: { id: image.lessonId },
         data: {
           needsReprocessing: true,
+          photoOrganization: Prisma.DbNull,
           ...(content ? { reconstruction: json(content) } : {}),
           status: content
             ? "COMPLETED"

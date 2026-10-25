@@ -1,157 +1,150 @@
-import type { Reconstruction, ReconstructionStep } from "@/lib/types";
+import type {
+  BoardElement,
+  Reconstruction,
+  ReconstructionStep,
+} from "@/lib/types";
+import { linkedListFrames } from "@/lib/demo-scenes.mjs";
+
+export const LINKED_LIST_DEMO_TOPIC = "linked-list-evolution-v2";
+
+export interface DemoElement {
+  id: string;
+  type: BoardElement["type"];
+  text: string;
+  latex?: string;
+  codeLanguage?: string;
+  layout: BoardElement["layout"];
+  visual?: BoardElement["visual"];
+}
+export interface DemoFrame {
+  title: string;
+  description: string;
+  sectionId: string;
+  elements: DemoElement[];
+  correctionIds?: string[];
+  newTopic?: boolean;
+}
+
+/** Original source PNGs and replay share author-defined geometry; no vision accuracy is implied. */
 export function sampleReconstruction(imageIds: string[]): Reconstruction {
-  const [a, b, c, d] = imageIds;
+  return sceneReconstruction(
+    imageIds,
+    linkedListFrames as unknown as DemoFrame[],
+  );
+}
+
+export function sceneReconstruction(
+  imageIds: string[],
+  frames: DemoFrame[],
+): Reconstruction {
+  if (!imageIds.length)
+    throw new Error("The synthetic sample needs source images.");
+  let previous: DemoElement[] = [];
+  const steps: ReconstructionStep[] = frames.map((frame, index) => {
+    const imageId = imageIds[Math.min(index, imageIds.length - 1)];
+    const beforeId =
+      imageIds[Math.max(0, Math.min(index - 1, imageIds.length - 1))];
+    const changes: NonNullable<ReconstructionStep["changes"]> = [];
+    if (frame.newTopic) {
+      changes.push({
+        id: `capture-${index + 1}-clear`,
+        action: "NEW_TOPIC",
+        targetId: null,
+        element: null,
+        description:
+          "The photographed board has been cleared for the cost-of-insertion topic. Earlier captures remain available in replay.",
+      });
+      previous = [];
+    }
+    for (const oldElement of previous) {
+      if (!frame.elements.some((element) => element.id === oldElement.id)) {
+        changes.push({
+          id: `capture-${index + 1}-erase-${oldElement.id}`,
+          action: "ERASE",
+          targetId: oldElement.id,
+          element: null,
+          description: `${oldElement.text || oldElement.id} is absent from this photographed board.`,
+        });
+      }
+    }
+    for (const item of frame.elements) {
+      const old = previous.find((element) => element.id === item.id);
+      if (old && JSON.stringify(old) === JSON.stringify(item)) {
+        changes.push({
+          id: `capture-${index + 1}-keep-${item.id}`,
+          action: "UNCHANGED",
+          targetId: item.id,
+          element: null,
+          description: `${item.text || item.id} remains visible in the same location.`,
+        });
+        continue;
+      }
+      const action = !old
+        ? "ADD"
+        : frame.correctionIds?.includes(item.id)
+          ? "CORRECT"
+          : "MODIFY";
+      const element: BoardElement = {
+        ...item,
+        layoutBasis: "SAMPLE_EXACT",
+        sourceImageIds: [imageId],
+        evidenceStatus: "OBSERVED",
+        sourceRegion: { imageId, ...item.layout },
+      };
+      changes.push({
+        id: `capture-${index + 1}-${action.toLowerCase()}-${item.id}`,
+        action,
+        targetId: old ? item.id : null,
+        element,
+        description:
+          action === "CORRECT"
+            ? "The visible draft n->next = nullptr is crossed out and replaced with n->next = head->next; the earlier statement remains in capture 2."
+            : `${action === "ADD" ? "Appears" : "Changes"} in capture ${index + 1}: ${item.text || item.id}`,
+      });
+    }
+    previous = frame.elements;
+    return {
+      id: `capture-${index + 1}`,
+      type: "paragraph",
+      sectionId: frame.sectionId,
+      text: frame.description,
+      stepIndex: index,
+      sourceImageIds: index
+        ? [beforeId, imageId].filter((id, i, ids) => ids.indexOf(id) === i)
+        : [imageId],
+      evidenceStatus: "OBSERVED",
+      originalText: frame.title,
+      changes,
+      verification: {
+        status: "NOT_VERIFIED",
+        message:
+          "Author-defined synthetic fixture. Coordinates are exact by construction; no live vision accuracy or code execution is claimed.",
+      },
+    };
+  });
   return {
-    title: "Completing the square: finding both roots",
+    schemaVersion: 2,
+    title: "Linked lists: preserve the pointer, then insert",
     overview:
-      "A synthetic mathematics lesson showing the original setup, a positive-root-only draft, its visible correction, and verification of both solutions. This is prebuilt SAMPLE DATA, not a live AI response.",
+      "SYNTHETIC SAMPLE — Five original, chronological university board captures combine a linked-list diagram, C++ source code, a visibly corrected statement, pointer rewiring, and a new complexity topic. This is prebuilt sample data, not a live AI response.",
+    disciplines: ["Computer science", "Software engineering"],
+    board: { aspectRatio: 1.6 },
     concepts: [
-      "Completing the square",
-      "Equivalent transformations",
-      "Positive and negative square roots",
-      "Checking solutions",
+      "Linked-list nodes and pointers",
+      "Insertion after a known node",
+      "Preserving the successor",
+      "Visible corrections",
+      "Operation complexity",
     ],
     sections: [
-      { id: "setup", title: "01 · Complete the square" },
-      { id: "correction", title: "02 · Preserve the correction" },
-      { id: "result", title: "03 · Check the result" },
-      { id: "next", title: "04 · What remains incomplete" },
+      { id: "structure", title: "01 · Nodes and the insertion draft" },
+      { id: "rewire", title: "02 · Correct and rewire the pointers" },
+      { id: "cost", title: "03 · A new topic: insertion cost" },
     ],
-    steps: (
-      [
-        {
-          id: "s1",
-          sectionId: "setup",
-          type: "equation",
-          text: "The original quadratic equation",
-          latex: "x^2 - 6x + 5 = 0",
-          stepIndex: 0,
-          sourceImageIds: [a],
-          evidenceStatus: "OBSERVED",
-          originalText: "Solve: x² − 6x + 5 = 0",
-        },
-        {
-          id: "s2",
-          sectionId: "setup",
-          type: "derivation",
-          text: "Move the constant, then add 9 to both sides.",
-          latex:
-            "\\begin{aligned}x^2-6x&=-5\\\\x^2-6x+9&=-5+9\\\\x^2-6x+9&=4\\end{aligned}",
-          stepIndex: 1,
-          sourceImageIds: [a, b],
-          evidenceStatus: "OBSERVED",
-          originalText:
-            "x² − 6x = −5; Add 9 to BOTH sides; x² − 6x + 9 = −5 + 9",
-        },
-        {
-          id: "s3",
-          sectionId: "setup",
-          type: "equation",
-          text: "Recognize the perfect square.",
-          latex: "(x-3)^2=4",
-          stepIndex: 2,
-          sourceImageIds: [b, c],
-          evidenceStatus: "OBSERVED",
-          originalText: "(x − 3)² = 4",
-        },
-        {
-          id: "s4",
-          sectionId: "correction",
-          type: "equation",
-          text: "Earlier draft: only the positive square root was written. This incomplete version remains in the timeline.",
-          latex: "x-3=2",
-          stepIndex: 3,
-          sourceImageIds: [b, c],
-          evidenceStatus: "OBSERVED",
-          originalText: "x − 3 = 2",
-          uncertainty:
-            "Incomplete draft; corrected in the next captured frame.",
-        },
-        {
-          id: "s5",
-          sectionId: "correction",
-          type: "derivation",
-          text: "The next frame crosses out the draft and explicitly takes both square roots.",
-          latex: "\\begin{aligned}x-3&=\\pm 2\\\\x&=3\\pm 2\\end{aligned}",
-          stepIndex: 4,
-          sourceImageIds: [c],
-          evidenceStatus: "OBSERVED",
-          originalText:
-            "Correction: take BOTH square roots; x − 3 = ±2; x = 3 ± 2",
-        },
-        {
-          id: "s6",
-          sectionId: "correction",
-          type: "paragraph",
-          text: "Taking a square root requires both signs here: two real numbers, 2 and −2, square to 4. This explanation is supplied by the sample author.",
-          stepIndex: 5,
-          sourceImageIds: [b, c],
-          evidenceStatus: "DERIVED",
-          explanation: true,
-        },
-        {
-          id: "s7",
-          sectionId: "result",
-          type: "equation",
-          text: "The two solutions shown on the final board.",
-          latex: "\\boxed{x=1\\quad\\text{or}\\quad x=5}",
-          stepIndex: 6,
-          sourceImageIds: [d],
-          evidenceStatus: "OBSERVED",
-          originalText: "x = 1 or x = 5",
-        },
-        {
-          id: "s8",
-          sectionId: "result",
-          type: "derivation",
-          text: "The final frame substitutes each root into the original equation.",
-          latex: "\\begin{aligned}1^2-6(1)+5&=0\\\\5^2-6(5)+5&=0\\end{aligned}",
-          stepIndex: 7,
-          sourceImageIds: [d],
-          evidenceStatus: "OBSERVED",
-          originalText: "1² − 6(1) + 5 = 0; 5² − 6(5) + 5 = 0",
-          verification: {
-            status: "VERIFIED",
-            message:
-              "Direct arithmetic: 1 − 6 + 5 = 0 and 25 − 30 + 5 = 0. This checks these substitutions only.",
-          },
-        },
-        {
-          id: "s9",
-          sectionId: "next",
-          type: "equation",
-          text: "A separate problem begins on the last board. Its solution was not captured.",
-          latex: "x^2+4x+4=0",
-          stepIndex: 8,
-          sourceImageIds: [d],
-          evidenceStatus: "OBSERVED",
-          originalText:
-            "Next problem: x² + 4x + 4 = 0 (not solved in captured frames)",
-        },
-        {
-          id: "s10",
-          sectionId: "next",
-          type: "paragraph",
-          text: "A homework page number is unreadable in the first frame.",
-          stepIndex: 9,
-          sourceImageIds: [a],
-          evidenceStatus: "UNCERTAIN",
-          originalText: "Homework: p. [?]",
-          uncertainty:
-            "The page number cannot be determined from the captured image.",
-        },
-      ] satisfies ReconstructionStep[]
-    ).map((step) => ({
-      ...step,
-      verification: step.verification ?? {
-        status: "NOT_VERIFIED" as const,
-        message:
-          "Transcribed sample; symbolic reasoning was not independently verified.",
-      },
-    })),
+    steps,
     unresolved: [
-      "The homework page number is unreadable.",
-      "The next problem is visible but its solution is absent. Nothing erased before the first photo can be recovered.",
+      "These five images cannot reveal writing or erasures that happened between captures.",
+      "The C++ shown is a lecture excerpt; allocation failures, ownership, and deletion are outside the captured content.",
     ],
   };
 }

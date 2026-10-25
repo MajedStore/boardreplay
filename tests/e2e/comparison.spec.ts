@@ -33,6 +33,13 @@ test("three manual tools, honest human ranking, exports and four-page academic r
     expect(imageResponse.ok()).toBeTruthy();
     const uploaded = await imageResponse.json();
     const imageId = uploaded.images[0].id as string;
+    await page.goto("/");
+    await page.getByRole("button", { name: "More options", exact: true }).click();
+    await expect(page.getByRole("menuitem", { name: "All lessons", exact: true })).toBeFocused();
+    await page.keyboard.press("ArrowDown");
+    await expect(page.getByRole("menuitem", { name: "AI Comparison Lab", exact: true })).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(page).toHaveURL(/\/lab$/);
     await page.goto(`/lab?lessonId=${lessonId}`);
     await expect(
       page.getByRole("heading", { name: "AI Comparison Lab." }),
@@ -43,17 +50,30 @@ test("three manual tools, honest human ranking, exports and four-page academic r
       "No ranking yet",
     );
     await page.locator(".lab-benchmark-receipt summary").click();
-    await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
+    await page
+      .context()
+      .grantPermissions(["clipboard-read", "clipboard-write"]);
     await page.getByRole("button", { name: "Copy prompt" }).click();
     const copied = await page.evaluate(() => navigator.clipboard.readText());
-    expect(copied).toContain("Never recover, guess, or invent writing that was not captured.");
+    expect(copied).toContain(
+      "Never invent unseen writing, missing code, diagram topology",
+    );
     expect(copied).toContain(`Source image 1; image ID: ${imageId}`);
     const preparedDownloadEvent = page.waitForEvent("download");
-    await page.getByRole("link", { name: "Download photo 1", exact: true }).click();
+    await page
+      .getByRole("link", { name: "Download photo 1", exact: true })
+      .click();
     const preparedDownload = await preparedDownloadEvent;
-    expect(preparedDownload.suggestedFilename()).toBe("boardreplay-photo-01.jpg");
+    expect(preparedDownload.suggestedFilename()).toBe(
+      "boardreplay-photo-01.jpg",
+    );
     await preparedDownload.saveAs(testInfo.outputPath("prepared-photo.jpg"));
-    expect(fs.readFileSync(testInfo.outputPath("prepared-photo.jpg")).subarray(0, 2).toString("hex")).toBe("ffd8");
+    expect(
+      fs
+        .readFileSync(testInfo.outputPath("prepared-photo.jpg"))
+        .subarray(0, 2)
+        .toString("hex"),
+    ).toBe("ffd8");
     await page.locator(".lab-benchmark-receipt summary").click();
 
     for (let provider = 0; provider < 3; provider++) {
@@ -68,7 +88,7 @@ test("three manual tools, honest human ranking, exports and four-page academic r
       await page
         .getByLabel("Actual raw response")
         .fill(
-          `AUTOMATED TEST RESPONSE — not an actual provider experiment. Fixture ${provider + 1}: x^2 - 6x + 5 = 0. The visible board begins a completing-the-square example. Earlier steps not captured cannot be recovered.`,
+          `AUTOMATED TEST RESPONSE — not an actual provider experiment. Fixture ${provider + 1}: head points to node 10, then node 30. A Node structure contains a value and a next pointer. Uncaptured connections cannot be recovered.`,
         );
       await page
         .getByLabel("Notes (optional)")
@@ -102,7 +122,7 @@ test("three manual tools, honest human ranking, exports and four-page academic r
     );
     await expect(page.locator(".ranking-row").first()).toContainText("40");
     const reference =
-      "AUTOMATED TEST REFERENCE: x^2 - 6x + 5 = 0. Synthetic image fixture; not a real experiment.";
+      "AUTOMATED TEST REFERENCE: head -> 10 -> 30 -> nullptr. Synthetic image fixture; not a real experiment.";
     await page
       .getByLabel("Verified reference reconstruction / answer key")
       .fill(reference);
@@ -157,8 +177,12 @@ test("three manual tools, honest human ranking, exports and four-page academic r
       "AUTOMATED TEST MODEL 1",
     );
     await expect(page.locator(".report-sheet")).toHaveCount(4);
-    await expect(page.locator(".report-document img").first()).toHaveAttribute("src", new RegExp(`/api/comparisons/[^/]+/images/${imageId}$`));
-    await page.getByRole("button", { name: "Use dark theme" }).click();
+    await expect(page.locator(".report-document img").first()).toHaveAttribute(
+      "src",
+      new RegExp(`/api/comparisons/[^/]+/images/${imageId}$`),
+    );
+    await page.getByRole("button", { name: "More options", exact: true }).click();
+    await page.getByRole("menuitem", { name: "Use dark theme", exact: true }).click();
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
     await page.emulateMedia({ media: "print" });
     await page.evaluate(async () => {

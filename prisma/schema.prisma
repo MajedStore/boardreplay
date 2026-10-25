@@ -18,12 +18,17 @@ model Lesson {
   isDemo Boolean @default(false)
   needsReprocessing Boolean @default(false)
   reconstruction Json?
+  document Json?
+  explanationsNeedRefresh Boolean @default(false)
+  organizationMode String @default("AUTOMATIC")
+  photoOrganization Json?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   images LectureImage[]
   runs ProcessingRun[]
   revisions ReconstructionRevision[]
   comparisons ComparisonRun[]
+  analysisCache PhotoAnalysisCache[]
   report ReportDraft?
 }
 model LectureImage {
@@ -48,6 +53,7 @@ model ProcessingRun {
   provider String
   model String
   imageSnapshot Json
+  organization Json?
   startedAt DateTime @default(now())
   completedAt DateTime?
   error String?
@@ -60,6 +66,16 @@ model ExtractionResult {
   run ProcessingRun @relation(fields: [runId], references: [id], onDelete: Cascade)
   position Int
   content Json
+}
+model PhotoAnalysisCache {
+  id String @id @default(cuid())
+  lessonId String
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  key String
+  content Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([lessonId, key])
 }
 model ReconstructionRevision {
   id String @id @default(cuid())
@@ -74,6 +90,8 @@ model ComparisonRun {
   lessonId String
   lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
   prompt String
+  systemInstructions String @default("")
+  wrapperVersion String @default("boardreplay-benchmark-v1")
   imageSnapshot Json
   reference String @default("")
   createdAt DateTime @default(now())

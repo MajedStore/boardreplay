@@ -14,6 +14,8 @@ export interface GenerateRequest<T> {
   images: VisionImage[];
   schema?: z.ZodType<T>;
   schemaName?: string;
+  /** Recover optional provider fields locally before strict content validation. Never infers source units. */
+  normalizeOutput?: (value: unknown) => unknown;
 }
 export interface GenerateResult<T> {
   rawOutput: string;

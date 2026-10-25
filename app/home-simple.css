@@ -1,0 +1,27 @@
+﻿.home-simple { width: min(780px, calc(100% - 64px)); margin: 0 auto; padding: 72px 0 64px; }
+.home-simple h1 { max-width: 700px; margin: 0 auto 38px; color: var(--ink, #24292f); font-size: clamp(30px, 3.4vw, 43px); font-weight: 600; line-height: 1.22; letter-spacing: -1.5px; text-align: center; }
+.home-simple-recents { margin-top: 56px; }
+.home-simple-list-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 13px; }
+.home-simple-list-heading h2 { margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -.2px; }
+.home-simple-list-heading > a { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted, #737b84); }
+.home-simple-list { list-style: none; padding: 0; margin: 0; }
+.home-simple-list li + li { border-top: 1px solid var(--line, #e9edf1); }
+.home-simple-list li > a { display: flex; align-items: center; gap: 16px; padding: 14px 8px; border-radius: 6px; transition: background .15s; }
+.home-simple-list li > a:hover { background: var(--surface-alt, #f3f6f8); }
+.home-simple-list img, .home-simple-no-photo { display: block; flex: 0 0 52px; width: 52px; height: 40px; object-fit: cover; border-radius: 4px; background: var(--surface-alt, #f1f4f6); }
+.home-simple-list li > a > div { min-width: 0; flex: 1; }
+.home-simple-list strong { display: block; font-size: 14px; line-height: 1.5; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.home-simple-list li span:not(.home-simple-no-photo) { display: block; margin-top: 2px; font-size: 12px; color: var(--muted, #737b84); }
+.home-simple-list li svg { color: var(--muted, #737b84); flex-shrink: 0; }
+.home-simple-empty { margin: 20px 0; font-size: 13px; color: var(--muted, #737b84); }
+.home-simple-empty a { color: var(--accent, #087ea4); }
+.home-simple-new { padding-top: 72px; }
+.home-simple-new h1 { font-size: 34px; }
+@media (max-width: 600px) {
+  .home-simple { width: calc(100% - 36px); padding-top: 44px; }
+  .home-simple h1 { font-size: 30px; letter-spacing: -.9px; margin-bottom: 30px; }
+  .home-simple-recents { margin-top: 40px; }
+  .home-simple-list li > a { padding-left: 0; padding-right: 0; gap: 12px; }
+  .home-simple-new h1 { font-size: 29px; }
+}
+

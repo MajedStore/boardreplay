@@ -8,6 +8,10 @@ import {
 import { validateReconstruction } from "@/lib/reconstruction/validate";
 import { removeStoredImage } from "@/lib/storage/images";
 import type { Reconstruction } from "@/lib/types";
+import { markUserEdits } from "@/lib/reconstruction/edits";
+import { z } from "zod";
+import { validateLectureDocument } from "@/lib/lecture-document";
+import type { LectureDocument } from "@/lib/types";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 type Context = { params: Promise<{ id: string }> };
@@ -20,7 +24,32 @@ export async function PATCH(request: Request, context: Context) {
     const { id } = await context.params;
     const previous = await ensureEditable(id);
     const body = await request.json();
-    if (body.reconstruction) {
+    if (body.explanation || body.documentOrder) {
+      if (!previous.document) throw new ApiError("Generate lecture explanations before editing this document.");
+      const document = structuredClone(previous.document) as unknown as LectureDocument;
+      const imageIds = (await db.lectureImage.findMany({ where: { lessonId: id }, select: { id: true } })).map((image) => image.id);
+      let reordered = false;
+      if (body.explanation) {
+        const change = z.object({ imageId: z.string(), heading: z.string().max(300), bodyMarkdown: z.string().trim().min(1).max(30000) }).parse(body.explanation);
+        const photo = document.photos.find((item) => item.imageId === change.imageId);
+        if (!photo) throw new ApiError("This photograph is not in the saved lecture document.");
+        photo.heading = change.heading;
+        photo.bodyMarkdown = change.bodyMarkdown;
+        photo.evidenceStatus = "USER_EDITED";
+      }
+      if (body.documentOrder) {
+        const ids = z.array(z.string()).min(1).max(20).parse(body.documentOrder);
+        if (ids.length !== document.photos.length || new Set(ids).size !== ids.length || ids.some((source) => !document.photos.some((photo) => photo.imageId === source))) throw new ApiError("Include every document photograph exactly once when correcting the order.");
+        document.photos = ids.map((source) => document.photos.find((photo) => photo.imageId === source)!);
+        document.organization.mode = "MANUAL";
+        reordered = true;
+      }
+      const content = validateLectureDocument(document, imageIds);
+      await db.$transaction(async (tx) => {
+        await tx.reconstructionRevision.create({ data: { lessonId: id, content: json({ kind: "PHOTO_LECTURE", document: previous.document }), reason: reordered ? "Before correcting photo order" : "Before editing an explanation" } });
+        await tx.lesson.update({ where: { id }, data: { document: json(content), ...(reordered ? { explanationsNeedRefresh: true, organizationMode: "MANUAL" } : {}), status: "COMPLETED" } });
+      });
+    } else if (body.reconstruction) {
       const images = await db.lectureImage.findMany({
         where: { lessonId: id },
       });
@@ -36,33 +65,7 @@ export async function PATCH(request: Request, context: Context) {
         );
       }
       const old = previous.reconstruction as unknown as Reconstruction | null;
-      for (const step of reconstruction.steps) {
-        const before = old?.steps.find((s) => s.id === step.id);
-        if (
-          !before ||
-          [
-            "text",
-            "latex",
-            "evidenceStatus",
-            "type",
-            "uncertainty",
-            "explanation",
-            "sourceImageIds",
-          ].some(
-            (key) =>
-              JSON.stringify(before[key as keyof typeof before]) !==
-              JSON.stringify(step[key as keyof typeof step]),
-          )
-        ) {
-          step.evidenceStatus = "USER_EDITED";
-          step.originalText =
-            before?.originalText ?? before?.text ?? step.originalText ?? null;
-          step.verification = {
-            status: "NOT_VERIFIED",
-            message: "User correction; not independently verified.",
-          };
-        }
-      }
+      reconstruction = markUserEdits(reconstruction, old);
       await db.$transaction(async (tx) => {
         if (previous.reconstruction)
           await tx.reconstructionRevision.create({
@@ -81,7 +84,7 @@ export async function PATCH(request: Request, context: Context) {
       const data = lessonInputSchema.partial().parse(body);
       if (Object.keys(data).length === 0)
         throw new ApiError("No lesson changes were provided.");
-      await db.lesson.update({ where: { id }, data });
+      await db.lesson.update({ where: { id }, data: { ...data, ...(data.title && previous.document ? { document: json({ ...(previous.document as unknown as LectureDocument), title: data.title }) } : {}) } });
     }
     return getLesson(id);
   });

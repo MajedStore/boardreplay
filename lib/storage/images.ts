@@ -51,7 +51,12 @@ export async function inspectImage(buffer: Buffer, mimeType: string) {
       .resize(32, 32)
       .raw()
       .toBuffer();
-    return { width: meta.width, height: meta.height };
+    // Browser display and prepared provider images both honor camera EXIF orientation.
+    const swapped = [5, 6, 7, 8].includes(meta.orientation ?? 1);
+    return {
+      width: swapped ? meta.height : meta.width,
+      height: swapped ? meta.width : meta.height,
+    };
   } catch (error) {
     if (error instanceof ApiError) throw error;
     throw new ApiError(
@@ -75,9 +80,12 @@ export async function imageForAI(image: {
   rotation: number;
   sequence: number;
 }) {
-  const buffer = await sharp(safeStoragePath(image.storagePath), {
-    limitInputPixels: 40_000_000,
-  })
+  const { data: buffer, info } = await sharp(
+    safeStoragePath(image.storagePath),
+    {
+      limitInputPixels: 40_000_000,
+    },
+  )
     .autoOrient()
     .rotate(image.rotation)
     .resize({
@@ -87,11 +95,13 @@ export async function imageForAI(image: {
       withoutEnlargement: true,
     })
     .jpeg({ quality: 90 })
-    .toBuffer();
+    .toBuffer({ resolveWithObject: true });
   return {
     id: image.id,
     mimeType: "image/jpeg",
     base64: buffer.toString("base64"),
     sequence: image.sequence,
+    width: info.width,
+    height: info.height,
   };
 }

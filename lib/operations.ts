@@ -11,7 +11,7 @@ const operations = (state.boardReplayOperations ??= new Map<
   string,
   Map<symbol, OperationKind>
 >());
-const busyStatuses = ["UPLOADING", "EXTRACTING", "RECONSTRUCTING"];
+const busyStatuses = ["UPLOADING", "ANALYZING", "EXTRACTING", "FINDING_DUPLICATES", "ORGANIZING", "RECONSTRUCTING"];
 
 export function hasActiveLessonOperation(lessonId: string): boolean {
   return Boolean(operations.get(lessonId)?.size);
@@ -75,7 +75,7 @@ export async function recoverInterruptedOperation(
     });
     if (changed.count)
       await tx.processingRun.updateMany({
-        where: { lessonId, status: { in: ["EXTRACTING", "RECONSTRUCTING"] } },
+        where: { lessonId, status: { in: busyStatuses.filter((status) => status !== "UPLOADING") } },
         data: { status: "FAILED", error: message, completedAt: new Date() },
       });
   });

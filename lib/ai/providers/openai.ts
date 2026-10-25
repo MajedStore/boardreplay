@@ -3,6 +3,7 @@ import { zodTextFormat } from "openai/helpers/zod";
 import type { AiProvider, GenerateRequest, GenerateResult } from "../contracts";
 import { AiError } from "../errors";
 import { benchmarkImageLabel } from "../../benchmark";
+import { parseStructuredOutput } from "../parse-output";
 
 export class OpenAiProvider implements AiProvider {
   readonly id = "openai" as const;
@@ -30,7 +31,7 @@ export class OpenAiProvider implements AiProvider {
     }
     const input = [{ role: "user" as const, content }];
     if (request.schema) {
-      const response = await this.client.responses.parse({
+      const response = await this.client.responses.create({
         model: this.model,
         instructions: request.system,
         input,
@@ -48,16 +49,20 @@ export class OpenAiProvider implements AiProvider {
           "INCOMPLETE_OUTPUT",
           "The provider returned an incomplete reconstruction. Try fewer photographs in one lesson.",
         );
-      if (!response.output_parsed)
+      if (!response.output_text?.trim())
         throw new AiError(
           "INVALID_OUTPUT",
-          "The provider did not return a usable structured response. Review the photographs and try again.",
+          "The AI provider returned no usable structured content. Your photos are saved; retry reconstruction or choose another model.",
         );
-      return {
-        rawOutput: response.output_text,
-        structuredOutput: request.schema.parse(response.output_parsed),
-        model: response.model,
-      };
+      try {
+        return {
+          rawOutput: response.output_text,
+          structuredOutput: parseStructuredOutput(request, response.output_text),
+          model: response.model,
+        };
+      } catch {
+        throw new AiError("INVALID_OUTPUT", "The AI provider returned malformed structured content. Your photos and completed analysis are saved; retry reconstruction.");
+      }
     }
     const response = await this.client.responses.create({
       model: this.model,

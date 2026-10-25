@@ -1,7 +1,7 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { ApiError } from "@/lib/api";
-import type { Lesson, Reconstruction, ComparisonRun } from "@/lib/types";
+import type { Lesson, Reconstruction, ComparisonRun, PhotoOrganization, LectureDocument } from "@/lib/types";
 import type { Prisma } from "@/generated/prisma/client";
 import {
   hasActiveLessonOperation,
@@ -27,6 +27,9 @@ export function serializeLesson(
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
     reconstruction: row.reconstruction as unknown as Reconstruction | null,
+    document: row.document as unknown as LectureDocument | null,
+    organizationMode: row.organizationMode === "MANUAL" ? "MANUAL" : "AUTOMATIC",
+    photoOrganization: row.photoOrganization as unknown as PhotoOrganization | null,
     images: row.images.map((image) => ({
       id: image.id,
       lessonId: image.lessonId,
@@ -51,6 +54,7 @@ export function serializeLesson(
       startedAt: run.startedAt.toISOString(),
       completedAt: run.completedAt?.toISOString() ?? null,
       error: run.error,
+      organization: run.organization as unknown as PhotoOrganization | null,
     })),
   };
 }
@@ -69,7 +73,7 @@ export async function ensureEditable(id: string) {
   if (!lesson) throw new ApiError("Lesson not found.", 404);
   if (
     hasActiveLessonOperation(id) ||
-    ["EXTRACTING", "RECONSTRUCTING", "UPLOADING"].includes(lesson.status)
+    ["ANALYZING", "EXTRACTING", "FINDING_DUPLICATES", "ORGANIZING", "RECONSTRUCTING", "UPLOADING"].includes(lesson.status)
   )
     throw new ApiError(
       "Wait for the current upload, reconstruction, or benchmark to finish.",

@@ -9,7 +9,7 @@ import {
   validateUploadInfo,
 } from "@/lib/storage/images";
 import { z } from "zod";
-import type { Prisma } from "@/generated/prisma/client";
+import { Prisma } from "@/generated/prisma/client";
 import { beginLessonOperation, endLessonOperation } from "@/lib/operations";
 export const runtime = "nodejs";
 type Context = { params: Promise<{ id: string }> };
@@ -29,7 +29,7 @@ export async function POST(request: Request, context: Context) {
       const locked = await db.lesson.updateMany({
         where: {
           id,
-          status: { notIn: ["UPLOADING", "EXTRACTING", "RECONSTRUCTING"] },
+          status: { notIn: ["UPLOADING", "ANALYZING", "EXTRACTING", "FINDING_DUPLICATES", "ORGANIZING", "RECONSTRUCTING"] },
         },
         data: { status: "UPLOADING" },
       });
@@ -78,8 +78,9 @@ export async function POST(request: Request, context: Context) {
             where: { id },
             data: {
               status: previous.reconstruction ? "COMPLETED" : "READY",
-              needsReprocessing: !!previous.reconstruction,
+              needsReprocessing: !!previous.reconstruction || !!previous.document,
               error: null,
+              photoOrganization: Prisma.DbNull,
             },
           });
         });
@@ -121,7 +122,7 @@ export async function PATCH(request: Request, context: Context) {
         });
       await tx.lesson.update({
         where: { id },
-        data: { needsReprocessing: true },
+        data: { needsReprocessing: true, photoOrganization: Prisma.DbNull },
       });
     });
     return getLesson(id);

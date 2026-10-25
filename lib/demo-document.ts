@@ -1,0 +1,19 @@
+import type { LectureDocument, Reconstruction } from "./types";
+
+/** Author-defined educational examples for the synthetic photos; never substituted for real uploads. */
+export function sampleLectureDocument(reconstruction: Reconstruction, images: {id:string;width:number;height:number;rotation:number}[]): LectureDocument {
+  const organization: LectureDocument["organization"] = { version: 1, mode: "AUTOMATIC", sequences: [{ id: "sample-sequence", title: reconstruction.title, orderingConfidence: "HIGH", uncertainty: "Author-defined synthetic example; no live AI analysis or chronology accuracy is claimed.", states: images.map((image,index)=>({id:`sample-state-${index}`,imageIds:[image.id],primaryImageId:image.id,reason:"The authored example defines this sequence.",confidence:"HIGH"})) }], duplicateGroups: [], relationships: [], warnings: [] };
+  const explanations = [
+    "The board introduces a singly linked list: each node stores a value and a pointer to the next node. The pointer `head` identifies the first node; `nullptr` marks the end. The C++ structure below the diagram gives the fields represented by each box. This establishes the state used by the following insertion examples.",
+    "A new node is being inserted between two existing nodes. Preserve the successor before changing the predecessor: the new node first points to `current`, then the preceding link can point to the new node. The two assignments change different links. Reversing them can lose access to the remaining list. The original photographed code is the source to check for exact variable names.",
+    "This photo corrects the earlier insertion draft. Compare the crossed-out line and its replacement in the photograph: the new node's `next` pointer must preserve the old successor before the incoming link is changed. The correction matters because pointer updates are sequential operations, even when the resulting diagram looks simple.",
+    "The insertion has completed. Read the arrows from `head` to verify that every existing node is still reachable and that the inserted node occurs in the intended position. This photograph continues the same example; the unchanged node structure and pointer terminology need not be introduced again.",
+    "The discussion moves to insertion cost. Finding a position can require traversing the list, giving \\(O(n)\\) work. Once the insertion position and relevant link are already known, changing the links requires \\(O(1)\\) work. The table distinguishes search cost from the pointer update itself.",
+  ];
+  return {schemaVersion:1,title:reconstruction.title,overview:"Synthetic lecture document with original sample photographs and author-written explanations. No live AI output.",language:"English",organization,photos:images.map((image,index)=>{
+    const step = reconstruction.steps[index];
+    const content = step?.changes?.flatMap((change)=>change.element ? [change.element] : []) || [];
+    const technical = content.filter((item)=>item.latex||item.type==="code").map((item)=>item.latex?`\n\n$$\n${item.latex}\n$$`: `\n\n\`\`\`${item.codeLanguage||"text"}\n${item.text}\n\`\`\``).join("");
+    return {id:`sample-explanation-${index}`,imageId:image.id,sequenceId:"sample-sequence",heading:step?.text?.slice(0,90)||`Photo ${index+1}`,bodyMarkdown:(images.length===5?explanations[index]:`${step?.text||"Read the photographed technical material."}\n\n${step?.originalText||"This author-defined example preserves the original notation and diagram. The explanation is derived from the supplied synthetic photograph."}`)+technical,relation:index===0?"INITIAL":index===2&&images.length===5?"CORRECTION":"CONTINUATION",evidenceStatus:"DERIVED",uncertainty:null,sourceImageIds:[image.id],rotation:image.rotation,imageAspectRatio:image.width/image.height};
+  }),unresolved:["Synthetic example: photographs and explanations are authored fixtures, not a provider benchmark."]};
+}

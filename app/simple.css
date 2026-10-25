@@ -1,0 +1,109 @@
+:root {
+  --bg: #fafafa;
+  --surface: #fff;
+  --surface-alt: #f4f5f5;
+  --ink: #24282b;
+  --muted: #73797d;
+  --line: #e8eaeb;
+  --navy: #087f9b;
+  --accent: #087f9b;
+  --accent-soft: #eaf5f7;
+  --shadow: 0 8px 28px #24282b0b;
+  --radius: 9px;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-body: var(--font-sans);
+}
+html[data-theme="dark"] {
+  --bg: #171a1c;
+  --surface: #202426;
+  --surface-alt: #2a2f32;
+  --ink: #edf0f1;
+  --muted: #a4adb1;
+  --line: #343b3e;
+  --navy: #087f9b;
+  --accent: #4eabc0;
+  --accent-soft: #18383f;
+}
+body { font-size: 15px; }
+.btn { font-size: 14px; font-weight: 550; min-height: 42px; border-radius: 7px; box-shadow: none; }
+.btn:hover { transform: none; }
+.btn-primary { background: #087f9b; box-shadow: none; }
+.btn-primary:hover { background: #076b83; }
+.btn-small { min-height: 36px; font-size: 13px; }
+.icon-button { width: 40px; height: 40px; }
+.input { font-size: 14px; }
+.label, .field-help { font-size: 13px; }
+.simple-app-shell { min-height: 100dvh; }
+.simple-app-header { position: relative; height: auto; z-index: 30; background: var(--surface); border-bottom: 1px solid var(--line); backdrop-filter: none; }
+.simple-nav { max-width: 1200px; height: 72px; margin: auto; padding: 0 36px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+.simple-nav .brand { gap: 10px; font-size: 20px; color: var(--ink); letter-spacing: -.7px; white-space: nowrap; }
+.simple-nav .brand-light { color: inherit; font-weight: 450; }
+.simple-nav .brand-mark { width: 27px; height: 29px; background: transparent; border-radius: 0; box-shadow: none; transform: none; }
+.simple-nav .brand-mark span { background: var(--accent); height: 3px; border-radius: 2px; }
+.simple-nav-actions { display: flex; align-items: center; gap: 21px; }
+.simple-nav-link { font-size: 14px; color: var(--muted); padding: 8px 0; }
+.simple-nav-link:hover, .simple-nav-link.active { color: var(--ink); }
+.simple-menu-wrap { position: relative; flex-shrink: 0; }
+.simple-menu { position: absolute; right: 0; top: calc(100% + 6px); min-width: 226px; max-width: calc(100vw - 32px); background: var(--surface); padding: 6px; border: 1px solid var(--line); box-shadow: 0 8px 28px #19222715; border-radius: 9px; z-index: 60; }
+.simple-menu-item { width: 100%; border: 0; background: none; color: var(--ink); font-size: 14px; line-height: 1.4; padding: 11px 12px; border-radius: 5px; display: flex; gap: 11px; align-items: center; text-align: left; white-space: nowrap; }
+.simple-menu-item:hover, .simple-menu-item:focus-visible { background: var(--surface-alt); }
+.simple-menu-item svg { flex-shrink: 0; color: var(--muted); }
+.simple-menu-item.danger, .simple-menu-item.danger svg { color: var(--danger); }
+.simple-menu-divider { height: 1px; background: var(--line); margin: 5px 7px; }
+.simple-page-header { max-width: 1128px; width: auto; padding: 0; margin: 58px auto 34px; align-items: center; gap: 24px; }
+.simple-page-header h1 { font-size: 30px; letter-spacing: -.8px; margin-bottom: 0; font-weight: 600; }
+.simple-page-header p { margin: 10px 0 0; max-width: 660px; font-size: 15px; }
+.simple-library { width: calc(100% - 72px); max-width: 1128px; padding: 0 0 60px; margin: 0 auto; }
+.simple-library-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 24px; margin-bottom: 20px; }
+.simple-search { display: flex; align-items: center; gap: 10px; color: var(--muted); width: min(100%, 390px); }
+.simple-search input { width: 100%; min-width: 0; border: 0; border-radius: 5px; padding: 11px 0; font-size: 15px; color: var(--ink); background: transparent; }
+.simple-search input::placeholder { color: var(--muted); }
+.simple-library-filter { background: transparent; border-color: transparent; width: auto; max-width: 190px; color: var(--muted); padding-right: 8px; }
+.simple-lesson-list { display: flex; flex-direction: column; }
+.simple-lesson-row { display: flex; align-items: center; gap: 12px; min-width: 0; padding: 17px 0; border-bottom: 1px solid var(--line); }
+.simple-lesson-row:last-child { border-bottom: 0; }
+.simple-lesson-link { display: flex; align-items: center; gap: 22px; flex: 1; min-width: 0; }
+.simple-lesson-thumb { width: 82px; height: 60px; flex-shrink: 0; background: var(--surface-alt); overflow: hidden; border-radius: 5px; display: grid; place-items: center; color: var(--muted); }
+.simple-lesson-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.simple-lesson-info { min-width: 0; flex: 1; }
+.simple-lesson-info h2 { font-size: 16px; font-weight: 550; margin: 0; letter-spacing: -.2px; line-height: 1.45; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.simple-lesson-status { font-size: 13px; color: var(--muted); margin: 4px 0 0; }
+.simple-lesson-status.failed { color: var(--danger); }
+.simple-lesson-date { color: var(--muted); font-size: 13px; white-space: nowrap; margin-left: 12px; }
+.simple-library-empty { padding: 100px 15px; text-align: center; color: var(--muted); }
+.simple-library-empty > svg { margin: 0 auto 18px; }
+.simple-library-empty h2 { font-size: 19px; font-weight: 500; color: var(--ink); margin-bottom: 16px; letter-spacing: -.3px; }
+.simple-text-button { border: 0; background: transparent; color: var(--accent); font-size: 14px; padding: 10px; }
+.simple-loading { padding: 35px 0; color: var(--muted); }
+.simple-dialog { width: min(480px, calc(100vw - 32px)); max-height: calc(100dvh - 40px); overflow: auto; padding: 26px; margin: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); box-shadow: 0 12px 50px #00000022; }
+.simple-dialog::backdrop { background: #19222750; }
+.simple-dialog-header { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 22px; }
+.simple-dialog-header h2 { font-size: 21px; margin: 0; font-weight: 600; letter-spacing: -.4px; }
+.simple-dialog-header .icon-button { margin: -8px -10px -8px 0; }
+.simple-dialog p { font-size: 15px; line-height: 1.6; }
+.simple-dialog-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
+@media (max-width: 1200px) {
+  .simple-page-header, .simple-library { margin-left: 36px; margin-right: 36px; }
+}
+@media (max-width: 600px) {
+  .simple-nav { height: 64px; padding: 0 20px; }
+  .simple-nav .brand { font-size: 19px; }
+  .simple-nav-actions { gap: 17px; }
+  .simple-page-header { margin: 34px 20px 24px; align-items: center; }
+  .simple-page-header h1 { font-size: 25px; }
+  .simple-page-header > .btn { width: auto; min-width: auto; font-size: 13px; padding: 10px 12px; }
+  .simple-page-header > .btn > svg { display: block; }
+  .simple-page-header p { font-size: 14px; }
+  .simple-library { width: calc(100% - 40px); margin-left: 20px; margin-right: 20px; padding: 0 0 40px; }
+  .simple-library-toolbar { gap: 12px; margin-bottom: 7px; }
+  .simple-library-filter { max-width: 145px; font-size: 13px; padding-left: 6px; }
+  .simple-search { gap: 8px; }
+  .simple-search input { font-size: 14px; }
+  .simple-lesson-row { gap: 4px; padding: 15px 0; }
+  .simple-lesson-link { gap: 13px; }
+  .simple-lesson-thumb { width: 62px; height: 49px; }
+  .simple-lesson-info h2 { font-size: 15px; }
+  .simple-lesson-date { display: none; }
+  .simple-dialog { padding: 22px; }
+}
+@media print { .simple-app-header { display: none; } }

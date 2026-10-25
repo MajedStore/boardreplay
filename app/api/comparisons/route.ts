@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { EVIDENCE_SYSTEM_PROMPT } from "@/lib/ai/prompts";
+import { BENCHMARK_WRAPPER_VERSION } from "@/lib/benchmark";
 import { db } from "@/lib/db";
 import { api, ApiError, sameOrigin, limit } from "@/lib/api";
 import {
@@ -45,6 +47,8 @@ export async function POST(request: Request) {
       data: {
         lessonId: body.lessonId,
         prompt: body.prompt,
+        systemInstructions: EVIDENCE_SYSTEM_PROMPT,
+        wrapperVersion: BENCHMARK_WRAPPER_VERSION,
         imageSnapshot: json(
           images.map((i) => ({
             id: i.id,

@@ -5,7 +5,10 @@ import type {
   ProviderResult,
   ReportDraft,
 } from "./types";
-import { BENCHMARK_WRAPPER_VERSION, buildManualBenchmarkPrompt } from "./benchmark";
+import {
+  BENCHMARK_WRAPPER_VERSION,
+  buildManualBenchmarkPrompt,
+} from "./benchmark";
 export type {
   ComparisonRun,
   EvaluationCategory,
@@ -30,13 +33,14 @@ export const EVALUATION_CATEGORIES = [
   },
   {
     key: "equationAccuracy",
-    label: "Equation transcription",
-    description: "Are symbols, signs, and equations transcribed faithfully?",
+    label: "Technical content",
+    description:
+      "Are code, symbols, formulas, labels, and diagram relationships transcribed faithfully?",
   },
   {
     key: "chronology",
     label: "Chronological ordering",
-    description: "Does the output follow the ordered photographs?",
+    description: "Does the inferred order match visible development, with uncertain relationships clearly identified?",
   },
   {
     key: "erasedContent",
@@ -66,7 +70,7 @@ export const EVALUATION_CATEGORIES = [
   },
 ] as const;
 
-export const DEFAULT_EVALUATION_PROMPT = `Reconstruct this lecture using these whiteboard photographs in the supplied chronological order. Transcribe visible text and equations, preserve earlier content and corrections, and merge overlaps without discarding meaningful differences. Cite source image identifiers for each step. Distinguish observed content from derived explanations. Explicitly mark unclear or missing information. Never invent writing that was not captured. Keep the original language. Return an organized lesson with an overview, numbered steps, equations, and unresolved questions.`;
+export const DEFAULT_EVALUATION_PROMPT = `Organize these unordered university lecture photographs into an evidence-based sequence and provide a clear contextual academic explanation for EACH original photograph directly below its photo reference. Use actual visible content, repeated writing, additions, corrections, erasures, overlap, and reliable metadata as supporting evidence. Filenames and upload order do not establish chronology. Preserve every original, including duplicate views; explain repeated content briefly and distinguish complementary clearer views from meaningful new stages. Keep unrelated or weakly ordered photographs in explicitly uncertain separate sequences. Preserve the lecture language, including Turkish, and its university level across mathematics, programming, engineering, prose, tables, and diagrams. Explain what each photo shows, what changes from earlier photos, and what its notation means without unnecessarily repeating unchanged content. Use LaTeX and fenced source code where appropriate in ordinary document flow. Separate visible evidence, derived explanations, and uncertain or unreadable content. Cite supplied image IDs for each explanation. Do not invent missing symbols, uncaptured erased writing, diagrams, spoken remarks, or causal continuity. Do not generate a spatial canvas, coordinates, or floating text elements. Return the proposed order, a distinct explanation linked to every photo, duplicate/overlap notes, and unresolved questions.`;
 
 export function isValidScore(value: unknown): value is number {
   return (
@@ -244,7 +248,7 @@ export function comparisonCsv(run: ComparisonRun): string {
       run.reference,
       metrics?.wordEdits,
       metrics?.wordErrorRate,
-      BENCHMARK_WRAPPER_VERSION,
+      run.wrapperVersion || BENCHMARK_WRAPPER_VERSION,
       buildManualBenchmarkPrompt(run),
     ]
       .map(csvCell)
@@ -272,11 +276,11 @@ export function emptyReportDraft(): ReportDraft {
     problem:
       "Students capture whiteboards at different points in a lecture. The resulting photographs contain overlapping material, erased steps, and incomplete context.",
     objective:
-      "Build a traceable lesson reconstruction and replay workflow from chronologically ordered whiteboard photographs.",
+      "Organize unordered lecture photographs and provide contextual, source-linked explanations below each original image.",
     methodology:
-      "Evaluate the same ordered photographs using an identical saved prompt. Record the provider and model, retain the raw output, and assess eight categories on a 0–5 rubric against a verified reference. Treat manual submissions as manual. Text agreement metrics measure transcription differences, not mathematical correctness.",
+      "Evaluate the same photo set using an identical saved prompt and attachment order, without treating upload labels as chronology. Record the provider and model, retain the raw output, and assess eight categories on a 0–5 rubric against a verified reference. Treat manual submissions as manual. Text agreement metrics measure transcription differences, not semantic correctness.",
     implementation:
-      "BoardReplay combines ordered image storage, server-side vision providers, structured reconstruction, source-linked replay, manual corrections, and print-based PDF export.",
+      "BoardReplay combines original image storage, server-side vision analysis, automatic ordering, per-photo contextual explanations, manual corrections, and photo-document PDF export.",
     limitations:
       "Writing that was erased before any photograph was taken cannot be recovered. Handwriting, ambiguous notation, and incomplete image coverage can cause errors. Human rubric scores are subjective, and textual agreement does not establish mathematical correctness.",
     conclusion: "",

@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { AiProvider, GenerateRequest, GenerateResult } from "../contracts";
 import { AiError } from "../errors";
 import { benchmarkImageLabel } from "../../benchmark";
+import { parseStructuredOutput } from "../parse-output";
 
 export class GeminiProvider implements AiProvider {
   readonly id = "gemini" as const;
@@ -49,20 +50,20 @@ export class GeminiProvider implements AiProvider {
     if (!rawOutput.trim())
       throw new AiError(
         "INVALID_OUTPUT",
-        "The provider returned no usable text. Review the photographs and try again.",
+        "The AI provider returned no usable content. Your photos are saved; retry reconstruction or choose another model.",
       );
     if (!request.schema)
       return { rawOutput, model: response.modelVersion || this.model };
     try {
       return {
         rawOutput,
-        structuredOutput: request.schema.parse(JSON.parse(rawOutput)),
+        structuredOutput: parseStructuredOutput(request, rawOutput),
         model: response.modelVersion || this.model,
       };
     } catch {
       throw new AiError(
         "INVALID_OUTPUT",
-        "The provider returned invalid structured data. Review the photographs and try again.",
+        "The AI provider returned malformed structured content. Your photos and completed analysis are saved; retry reconstruction.",
       );
     }
   }

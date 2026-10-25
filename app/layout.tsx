@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import "katex/dist/katex.min.css";
 import "./globals.css";
+import "./simple.css";
 export const metadata: Metadata = {
-  title: "BoardReplay — Your lecture, reconstructed.",
+  title: "BoardReplay — Your lecture, organized.",
   description:
-    "Turn whiteboard photos into clear, source-linked notes and replayable lessons.",
+    "Organize lecture photographs automatically and study a contextual explanation directly below each photo.",
 };
 export default function RootLayout({
   children,

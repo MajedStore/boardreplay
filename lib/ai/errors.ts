@@ -38,7 +38,7 @@ export function safeAiError(error: unknown): AiError {
   if (record.name === "ZodError" || record.name === "SyntaxError")
     return new AiError(
       "INVALID_OUTPUT",
-      "The provider returned invalid structured data. Review the photographs and try again.",
+      "The AI returned data that could not be read reliably. Your photographs and completed analysis are saved. Retry reconstruction to request a repaired response.",
     );
   if (record.name === "LengthFinishReasonError")
     return new AiError(

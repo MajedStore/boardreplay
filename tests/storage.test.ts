@@ -30,7 +30,8 @@ const comparisonRunRoutes =
   await import("../app/api/comparisons/[id]/run/route");
 const resultRoutes = await import("../app/api/results/[id]/route");
 const reportRoutes = await import("../app/api/report/route");
-const preparedComparisonImageRoutes = await import("../app/api/comparisons/[id]/images/[imageId]/route");
+const preparedComparisonImageRoutes =
+  await import("../app/api/comparisons/[id]/images/[imageId]/route");
 const { EVALUATION_CATEGORIES } = await import("../lib/types");
 const makeRequest = (url: string, body: unknown, method = "POST") =>
   new Request(`http://localhost${url}`, {
@@ -47,6 +48,14 @@ beforeAll(() => {
       "utf8",
     ),
   );
+  sqlite.exec(
+    fs.readFileSync(
+      "prisma/migrations/20261024010000_universal_benchmark_snapshot/migration.sql",
+      "utf8",
+    ),
+  );
+  sqlite.exec(fs.readFileSync("prisma/migrations/20261024020000_photo_organization/migration.sql", "utf8"));
+  sqlite.exec(fs.readFileSync("prisma/migrations/20261025010000_photo_lecture_document/migration.sql", "utf8"));
   sqlite.close();
 });
 afterAll(async () => {
@@ -58,6 +67,36 @@ afterAll(async () => {
   vi.unstubAllEnvs();
 });
 describe("upload validation and ordering", () => {
+  it("preserves camera bytes while crop geometry uses EXIF-oriented prepared dimensions", async () => {
+    const jpeg = await sharp({
+      create: { width: 120, height: 80, channels: 3, background: "#a0c0d0" },
+    })
+      .jpeg()
+      .withMetadata({ orientation: 6 })
+      .toBuffer();
+    expect(await storage.inspectImage(jpeg, "image/jpeg")).toEqual({
+      width: 80,
+      height: 120,
+    });
+    const saved = await storage.storeImage(jpeg, "image/jpeg");
+    expect(fs.readFileSync(storage.safeStoragePath(saved.storagePath))).toEqual(
+      jpeg,
+    );
+    const prepared = await storage.imageForAI({
+      id: "camera-photo",
+      ...saved,
+      rotation: 0,
+      sequence: 0,
+    });
+    expect([prepared.width, prepared.height]).toEqual([80, 120]);
+    const turned = await storage.imageForAI({
+      id: "camera-photo",
+      ...saved,
+      rotation: 90,
+      sequence: 0,
+    });
+    expect([turned.width, turned.height]).toEqual([120, 80]);
+  });
   it.each([
     { type: "image/svg+xml", size: 100 },
     { type: "image/jpeg", size: 0 },
@@ -357,40 +396,109 @@ describe("real SQLite and filesystem workflow", () => {
 
 describe("persisted comparison and academic report API", () => {
   it("downloads exactly the prepared API image from the saved rotation and rejects nonmembers", async () => {
-    const lesson = await db.lesson.create({ data: { title: "Prepared image parity", status: "READY" } });
+    const lesson = await db.lesson.create({
+      data: { title: "Prepared image parity", status: "READY" },
+    });
     const pixels = Buffer.alloc(120 * 80 * 3, 255);
-    for (let y = 0; y < 80; y++) for (let x = 0; x < 40; x++) {
-      const offset = (y * 120 + x) * 3;
-      pixels[offset] = 20; pixels[offset + 1] = 80; pixels[offset + 2] = 120;
-    }
-    const png = await sharp(pixels, { raw: { width: 120, height: 80, channels: 3 } }).png().toBuffer();
+    for (let y = 0; y < 80; y++)
+      for (let x = 0; x < 40; x++) {
+        const offset = (y * 120 + x) * 3;
+        pixels[offset] = 20;
+        pixels[offset + 1] = 80;
+        pixels[offset + 2] = 120;
+      }
+    const png = await sharp(pixels, {
+      raw: { width: 120, height: 80, channels: 3 },
+    })
+      .png()
+      .toBuffer();
     const firstStored = await storage.storeImage(png, "image/png");
-    const image = await db.lectureImage.create({ data: { lessonId: lesson.id, originalFilename: "asymmetric.png", sequence: 0, rotation: 90, mimeType: "image/png", ...firstStored } });
+    const image = await db.lectureImage.create({
+      data: {
+        lessonId: lesson.id,
+        originalFilename: "asymmetric.png",
+        sequence: 0,
+        rotation: 90,
+        mimeType: "image/png",
+        ...firstStored,
+      },
+    });
     try {
-      const created = await comparisonRoutes.POST(makeRequest("/api/comparisons", { lessonId: lesson.id, prompt: "Transcribe exactly the supplied photographed board." }));
+      const created = await comparisonRoutes.POST(
+        makeRequest("/api/comparisons", {
+          lessonId: lesson.id,
+          prompt: "Transcribe exactly the supplied photographed board.",
+        }),
+      );
       expect(created.status).toBe(200);
       const comparison = await created.json();
-      await db.lectureImage.update({ where: { id: image.id }, data: { rotation: 180 } });
-      const prepared = await preparedComparisonImageRoutes.GET(new Request("http://localhost/prepared-image"), { params: Promise.resolve({ id: comparison.id, imageId: image.id }) });
+      await db.lectureImage.update({
+        where: { id: image.id },
+        data: { rotation: 180 },
+      });
+      const prepared = await preparedComparisonImageRoutes.GET(
+        new Request("http://localhost/prepared-image"),
+        { params: Promise.resolve({ id: comparison.id, imageId: image.id }) },
+      );
       expect(prepared.status).toBe(200);
       expect(prepared.headers.get("Content-Type")).toBe("image/jpeg");
       expect(prepared.headers.get("Cache-Control")).toBe("private, no-store");
-      expect(prepared.headers.get("Content-Disposition")).toContain('filename="boardreplay-photo-01.jpg"');
-      const expected = await storage.imageForAI({ ...image, rotation: 90, sequence: 0 });
+      expect(prepared.headers.get("Content-Disposition")).toContain(
+        'filename="boardreplay-photo-01.jpg"',
+      );
+      const expected = await storage.imageForAI({
+        ...image,
+        rotation: 90,
+        sequence: 0,
+      });
       const actual = Buffer.from(await prepared.arrayBuffer());
       expect(actual.equals(Buffer.from(expected.base64, "base64"))).toBe(true);
-      const currentRotation = await storage.imageForAI({ ...image, rotation: 180, sequence: 0 });
-      expect(actual.equals(Buffer.from(currentRotation.base64, "base64"))).toBe(false);
-      expect(await sharp(actual).metadata()).toMatchObject({ format: "jpeg", width: 80, height: 120 });
+      const currentRotation = await storage.imageForAI({
+        ...image,
+        rotation: 180,
+        sequence: 0,
+      });
+      expect(actual.equals(Buffer.from(currentRotation.base64, "base64"))).toBe(
+        false,
+      );
+      expect(await sharp(actual).metadata()).toMatchObject({
+        format: "jpeg",
+        width: 80,
+        height: 120,
+      });
 
       const otherStored = await storage.storeImage(png, "image/png");
-      const nonmember = await db.lectureImage.create({ data: { lessonId: lesson.id, originalFilename: "not-in-benchmark.png", sequence: 1, mimeType: "image/png", ...otherStored } });
-      const rejected = await preparedComparisonImageRoutes.GET(new Request("http://localhost/nonmember"), { params: Promise.resolve({ id: comparison.id, imageId: nonmember.id }) });
+      const nonmember = await db.lectureImage.create({
+        data: {
+          lessonId: lesson.id,
+          originalFilename: "not-in-benchmark.png",
+          sequence: 1,
+          mimeType: "image/png",
+          ...otherStored,
+        },
+      });
+      const rejected = await preparedComparisonImageRoutes.GET(
+        new Request("http://localhost/nonmember"),
+        {
+          params: Promise.resolve({ id: comparison.id, imageId: nonmember.id }),
+        },
+      );
       expect(rejected.status).toBe(404);
-      const missing = await preparedComparisonImageRoutes.GET(new Request("http://localhost/missing-benchmark"), { params: Promise.resolve({ id: "not-a-comparison", imageId: image.id }) });
+      const missing = await preparedComparisonImageRoutes.GET(
+        new Request("http://localhost/missing-benchmark"),
+        {
+          params: Promise.resolve({
+            id: "not-a-comparison",
+            imageId: image.id,
+          }),
+        },
+      );
       expect(missing.status).toBe(404);
     } finally {
-      await detailRoutes.DELETE(new Request("http://localhost/lesson", { method: "DELETE" }), { params: Promise.resolve({ id: lesson.id }) });
+      await detailRoutes.DELETE(
+        new Request("http://localhost/lesson", { method: "DELETE" }),
+        { params: Promise.resolve({ id: lesson.id }) },
+      );
     }
   });
   it("preserves benchmark inputs, actual manual output, validated scores, reference and report; cleans up results", async () => {
@@ -444,6 +552,8 @@ describe("persisted comparison and academic report API", () => {
       ids.map((id, sequence) => ({ id, sequence, rotation: 0 })),
     );
     expect(comparison.results).toEqual([]);
+    expect(comparison.wrapperVersion).toBe("boardreplay-benchmark-v2");
+    expect(comparison.systemInstructions).toContain("subject-agnostic");
 
     // Subsequent edits to the source lesson must not rewrite the benchmark snapshot.
     await imageRoutes.PATCH(

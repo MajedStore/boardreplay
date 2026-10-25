@@ -34,6 +34,10 @@ export async function POST(
       include: comparisonInclude,
     });
     if (!comparison) throw new ApiError("Comparison not found.", 404);
+    if (!comparison.systemInstructions)
+      throw new ApiError(
+        "This historical benchmark did not save its system instructions. Create a new benchmark; existing responses and scores are preserved.",
+      );
     const lock = `${id}:${provider}`;
     if (active.has(lock))
       throw new ApiError(
@@ -63,7 +67,12 @@ export async function POST(
           }),
         );
       }
-      const result = await benchmark(provider, images, comparison.prompt);
+      const result = await benchmark(
+        provider,
+        images,
+        comparison.prompt,
+        comparison.systemInstructions,
+      );
       await db.$transaction(async (tx) => {
         await tx.providerResult.create({
           data: {

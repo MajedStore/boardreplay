@@ -1,27 +1,24 @@
 import "server-only";
-import type { Lesson, ProviderId, Reconstruction } from "../types";
-import { validateReconstruction } from "../reconstruction/validate";
+import type { Lesson, PhotoOrganization, ProviderId, Reconstruction } from "../types";
+import type { PhotoMetrics } from "../photos/metrics";
+import { reconstructOrganized, type AnalysisCache } from "./organized-pipeline";
+
+
 import type { AiProvider, VisionImage } from "./contracts";
 import { getProviderConfiguration, getProviders } from "./config";
 import { AiError, safeAiError, withBoundedRetry } from "./errors";
-import {
-  EVIDENCE_SYSTEM_PROMPT,
-  EXTRACTION_PROMPT,
-  reconstructionPrompt,
-} from "./prompts";
+import { EVIDENCE_SYSTEM_PROMPT } from "./prompts";
 import { OpenAiProvider } from "./providers/openai";
 import { GeminiProvider } from "./providers/gemini";
 import { AnthropicProvider } from "./providers/anthropic";
-import {
-  aiReconstructionSchema,
-  extractionSchema,
-  type ImageExtraction,
-} from "./wire-schemas";
+import type { ImageExtraction } from "./wire-schemas";
+import { explainPhotoLecture, type PhotoLectureResult } from "./photo-document";
 
 export { getProviders } from "./config";
 export { AiError, safeAiError } from "./errors";
 export { extractionSchema, aiReconstructionSchema } from "./wire-schemas";
 export type { VisionImage } from "./contracts";
+export type { PhotoLectureResult } from "./photo-document";
 
 export function createProvider(id: ProviderId): AiProvider {
   const { apiKey, model } = getProviderConfiguration(id);
@@ -42,10 +39,12 @@ function orderedImages(images: VisionImage[]): VisionImage[] {
       "Process at most 20 photographs per lesson.",
     );
   const ids = new Set<string>();
+  const sequences = new Set<number>();
   for (const image of images) {
     if (
       !image.id ||
       ids.has(image.id) ||
+      sequences.has(image.sequence) ||
       !Number.isInteger(image.sequence) ||
       image.sequence < 0 ||
       !["image/jpeg", "image/png", "image/webp"].includes(image.mimeType) ||
@@ -53,12 +52,36 @@ function orderedImages(images: VisionImage[]): VisionImage[] {
     ) {
       throw new AiError(
         "INVALID_INPUT",
-        "The image set is invalid. Review your uploaded photographs and their order.",
+        "The image set is invalid. Review the uploaded photographs and try again.",
       );
     }
     ids.add(image.id);
+    sequences.add(image.sequence);
   }
   return [...images].sort((left, right) => left.sequence - right.sequence);
+}
+
+/** Reject malformed observation geometry and invented local diagram links. */
+function validateObservation(observation: ImageExtraction): void {
+  const ids = new Set(observation.items.map((item) => item.id));
+  if (ids.size !== observation.items.length || ids.has(""))
+    throw new AiError(
+      "INVALID_OUTPUT",
+      "Photograph observations must have unique non-empty item IDs.",
+    );
+  for (const item of observation.items) {
+    if (
+      item.spatialRelationships.some(
+        (relation) => !ids.has(relation.targetId),
+      ) ||
+      (item.visual?.fromId != null && !ids.has(item.visual.fromId)) ||
+      (item.visual?.toId != null && !ids.has(item.visual.toId))
+    )
+      throw new AiError(
+        "INVALID_OUTPUT",
+        "An observed diagram connection references an unseen item.",
+      );
+  }
 }
 
 export interface ReconstructionRequest {
@@ -68,12 +91,18 @@ export interface ReconstructionRequest {
   >;
   images: VisionImage[];
   provider?: ProviderId;
-  onStage?: (stage: "EXTRACTING" | "RECONSTRUCTING") => void | Promise<void>;
+  organizationMode?: "AUTOMATIC" | "MANUAL";
+  photoMetrics?: PhotoMetrics[];
+  cache?: AnalysisCache;
+  onOrganization?: (organization: PhotoOrganization) => void | Promise<void>;
+  onExtraction?: (observation: ImageExtraction) => void | Promise<void>;
+  onStage?: (stage: "ANALYZING" | "EXTRACTING" | "FINDING_DUPLICATES" | "ORGANIZING" | "RECONSTRUCTING") => void | Promise<void>;
 }
 
 export interface ReconstructionResult {
   reconstruction: Reconstruction;
   extractions: ImageExtraction[];
+  organization: PhotoOrganization;
   provider: string;
   model: string;
 }
@@ -97,68 +126,25 @@ export async function reconstructWithProvider(
   request: ReconstructionRequest,
   provider: AiProvider,
 ): Promise<ReconstructionResult> {
-  const images = orderedImages(request.images);
-  const extractions: ImageExtraction[] = [];
-  await request.onStage?.("EXTRACTING");
-  for (const image of images) {
-    const response = await withBoundedRetry(() =>
-      provider.generate({
-        system: EVIDENCE_SYSTEM_PROMPT,
-        prompt: EXTRACTION_PROMPT,
-        images: [image],
-        schema: extractionSchema,
-        schemaName: "board_observation",
-      }),
-    );
-    const parsed = extractionSchema.safeParse(response.structuredOutput);
-    if (
-      !parsed.success ||
-      (!parsed.data.items.length && !parsed.data.unreadableRegions.length)
-    )
-      throw new AiError(
-        "INVALID_OUTPUT",
-        `No usable whiteboard observation was returned for photograph ${image.sequence + 1}. Review this photograph before retrying.`,
-      );
-    extractions.push({
-      ...parsed.data,
-      imageId: image.id,
-      sequence: image.sequence,
-    });
-  }
-  await request.onStage?.("RECONSTRUCTING");
-  const response = await withBoundedRetry(() =>
-    provider.generate({
-      system: EVIDENCE_SYSTEM_PROMPT,
-      prompt: reconstructionPrompt(request.lesson, extractions),
-      images: [],
-      schema: aiReconstructionSchema,
-      schemaName: "reconstructed_lesson",
-    }),
-  );
-  try {
-    const structured = aiReconstructionSchema.parse(response.structuredOutput);
-    const reconstruction = validateReconstruction(
-      structured,
-      images.map((image) => image.id),
-    );
-    return {
-      reconstruction,
-      extractions,
-      provider: provider.id,
-      model: response.model,
-    };
-  } catch {
-    throw new AiError(
-      "INVALID_OUTPUT",
-      "The reconstruction contained invalid structure or unsupported image references. Your source photographs are saved; try processing again.",
-    );
-  }
+  return reconstructOrganized({ ...request, images: orderedImages(request.images) }, provider, validateObservation);
+}
+
+export async function explainLesson(request: ReconstructionRequest): Promise<PhotoLectureResult> {
+  const selected = request.provider || getProviders().find((provider) => provider.configured)?.id;
+  if (!selected) throw new AiError("MISSING_CONFIGURATION", "Connect an AI provider to organize your photographs and write lecture explanations.");
+  return explainWithProvider(request, createProvider(selected));
+}
+
+/** Injectable provider keeps the photographic document pipeline repeatable without network calls. */
+export async function explainWithProvider(request: ReconstructionRequest, provider: AiProvider): Promise<PhotoLectureResult> {
+  return explainPhotoLecture({ ...request, images: orderedImages(request.images) }, provider, validateObservation);
 }
 
 export async function benchmark(
   providerId: ProviderId,
   inputImages: VisionImage[],
   prompt: string,
+  systemInstructions = EVIDENCE_SYSTEM_PROMPT,
 ): Promise<{
   rawOutput: string;
   structuredOutput?: unknown;
@@ -175,7 +161,7 @@ export async function benchmark(
   const start = performance.now();
   try {
     const result = await withBoundedRetry(() =>
-      provider.generate({ system: EVIDENCE_SYSTEM_PROMPT, prompt, images }),
+      provider.generate({ system: systemInstructions, prompt, images }),
     );
     return { ...result, durationMs: Math.round(performance.now() - start) };
   } catch (error) {
